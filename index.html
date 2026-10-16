@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FAQ Chatbot - Task 2</title>
+<style>
+body{font-family:Arial; background:#f0f2f5; display:flex; justify-content:center; padding:20px;}
+.chatbox{width:400px; background:white; border-radius:12px; box-shadow:0 0 15px #ccc; display:flex; flex-direction:column; height:600px;}
+.header{background:#4CAF50; color:white; padding:15px; text-align:center; border-radius:12px 12px 0 0; font-weight:bold;}
+#messages{flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:10px;}
+.msg{padding:10px 14px; border-radius:18px; max-width:80%; word-wrap:break-word;}
+.user{background:#DCF8C6; align-self:flex-end;}
+.bot{background:#eee; align-self:flex-start;}
+.input-area{display:flex; padding:10px; border-top:1px solid #ddd;}
+input{flex:1; padding:12px; border:1px solid #ccc; border-radius:25px; outline:none;}
+button{margin-left:10px; padding:12px 18px; background:#4CAF50; color:white; border:none; border-radius:25px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="chatbox">
+  <div class="header">CodeAlpha FAQ Chatbot - Task 2</div>
+  <div id="messages">
+    <div class="msg bot">Hi! I am FAQ Bot. Ask me anything about CodeAlpha Internship.</div>
+  </div>
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button onclick="sendMsg()">Send</button>
+  </div>
+</div>
+
+<script>
+// STEP 1: COLLECT FAQs - Questions and Answers
+const faqs = [
+  { q: "what is codealpha internship", a: "CodeAlpha is a 1-month virtual internship program for students in Web Dev, AI, Python etc." },
+  { q: "is internship free", a: "Yes, CodeAlpha internship is free and open for all students." },
+  { q: "how to apply for internship", a: "You can apply through the CodeAlpha website or via LinkedIn post link." },
+  { q: "what is duration of internship", a: "The internship duration is 1 month." },
+  { q: "will i get certificate", a: "Yes, you will get a completion certificate after submitting all tasks." },
+  { q: "what are the tasks in web development", a: "Task 1 is Language Translator, Task 2 is FAQ Chatbot, Task 3 is Portfolio etc." },
+  { q: "is stipend provided", a: "No, this is an unpaid internship but you get certificate and experience." },
+  { q: "how to submit tasks", a: "You need to submit GitHub link and LinkedIn post link in the submission form." },
+  { q: "what is language translator", a: "It's a tool that translates text from one language to another using API." },
+  { q: "contact support", a: "You can contact CodeAlpha team via email or LinkedIn for support." }
+];
+
+// STEP 2: PREPROCESS TEXT - Tokenize, clean (NLP)
+function preprocess(text){
+  return text.toLowerCase()
+            .replace(/[^\w\s]/g, "") // remove punctuation
+            .split(" ") // tokenize
+            .filter(w => w.length > 2); // remove small words
+}
+
+// STEP 3: COSINE SIMILARITY - Matching logic
+function getSimilarity(tokens1, tokens2){
+  let allWords = [...new Set([...tokens1,...tokens2])];
+  let vec1 = allWords.map(w => tokens1.includes(w)? 1 : 0);
+  let vec2 = allWords.map(w => tokens2.includes(w)? 1 : 0);
+
+  let dot = vec1.reduce((sum, v, i) => sum + v * vec2[i], 0);
+  let mag1 = Math.sqrt(vec1.reduce((sum, v) => sum + v*v, 0));
+  let mag2 = Math.sqrt(vec2.reduce((sum, v) => sum + v*v, 0));
+
+  if(mag1 === 0 || mag2 === 0) return 0;
+  return dot / (mag1 * mag2);
+}
+
+function findBestAnswer(userQuestion){
+  let userTokens = preprocess(userQuestion);
+  let bestScore = 0;
+  let bestAnswer = "Sorry, I don't have answer for that. Try asking about internship, certificate, tasks, duration.";
+
+  faqs.forEach(faq => {
+    let faqTokens = preprocess(faq.q);
+    let score = getSimilarity(userTokens, faqTokens);
+    if(score > bestScore){
+      bestScore = score;
+      bestAnswer = faq.a;
+    }
+  });
+  return bestAnswer;
+}
+
+// STEP 4 & 5: DISPLAY ANSWER + CHAT UI
+function sendMsg(){
+  let input = document.getElementById("userInput");
+  let text = input.value.trim();
+  if(!text) return;
+
+  // show user message
+  let msgDiv = document.getElementById("messages");
+  msgDiv.innerHTML += `<div class="msg user">${text}</div>`;
+
+  // find and show bot answer
+  let answer = findBestAnswer(text);
+  setTimeout(() => {
+    msgDiv.innerHTML += `<div class="msg bot">${answer}</div>`;
+    msgDiv.scrollTop = msgDiv.scrollHeight;
+  }, 500);
+
+  input.value = "";
+  msgDiv.scrollTop = msgDiv.scrollHeight;
+}
+</script>
+</body>
+</html>
